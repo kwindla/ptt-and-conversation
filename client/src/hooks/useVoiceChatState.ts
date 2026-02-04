@@ -21,10 +21,10 @@ export function useVoiceChatState() {
       console.log("Server response:", response);
     };
 
-    client.on(RTVIEvent.MessageResponse, handleResponse);
+    client.on(RTVIEvent.ServerResponse, handleResponse);
 
     return () => {
-      client.off(RTVIEvent.MessageResponse, handleResponse);
+      client.off(RTVIEvent.ServerResponse, handleResponse);
     };
   }, [client]);
 
