@@ -1,6 +1,6 @@
 # Pipecat Cloud deployment configuration
 agent_name = "khk-ptt-voice-bot"
-image = "pluot/khk-ptt-voice-bot:0.10"
+image = "pluot/khk-ptt-voice-bot:0.12"
 secret_set = "ptt-voice-bot-secrets"
 
 [scaling]

@@ -3,6 +3,6 @@ name = "ptt-voice-bot"
 version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = [
-    "pipecat-ai[anthropic,deepgram,cartesia,daily,runner,webrtc]",
+    "pipecat-ai[anthropic,deepgram,elevenlabs,daily,runner,webrtc]",
     "python-dotenv",
 ]

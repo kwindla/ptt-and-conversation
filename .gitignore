@@ -1,6 +1,7 @@
 .env
 *.log
 pipecat-core-code/
+pipecat-quickstart/
 __pycache__/
 *.pyc
 .venv/

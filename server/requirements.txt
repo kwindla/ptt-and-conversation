@@ -2,7 +2,7 @@
 # runner: for the pipecat runner (includes small-webrtc-prebuilt)
 # webrtc: for aiortc (required by SmallWebRTC local transport)
 # daily: for Pipecat Cloud Daily transport
-pipecat-ai[anthropic,deepgram,cartesia,daily,runner,webrtc]
+pipecat-ai[anthropic,deepgram,elevenlabs,daily,runner,webrtc]
 
 # Environment variable loading
 python-dotenv

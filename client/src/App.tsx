@@ -9,6 +9,7 @@ import {
   ControlBar,
   Card,
   CardContent,
+  TextInput,
   usePipecatConnectionState,
 } from "@pipecat-ai/voice-ui-kit";
 import { ModeToggle } from "./components/ModeToggle";
@@ -73,6 +74,17 @@ function VoiceChatContent({
           </CardContent>
         </Card>
       </main>
+
+      {/* Text input section */}
+      {isConnected && (
+        <div className="text-input-section">
+          <TextInput
+            placeholder="Type a message..."
+            sendTextOptions={{ run_immediately: true, audio_response: true }}
+            size="lg"
+          />
+        </div>
+      )}
 
       {/* Controls area */}
       <footer className="voice-chat-footer">

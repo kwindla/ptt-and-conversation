@@ -7,6 +7,8 @@
 
 import os
 
+import aiohttp
+
 from dotenv import load_dotenv
 from loguru import logger
 
@@ -16,7 +18,7 @@ from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
 from pipecat.processors.aggregators.llm_context import LLMContext
 from pipecat.processors.aggregators.llm_response_universal import (
-    LLMContextAggregatorPair,
+    LLMUserAggregator,
     LLMUserAggregatorParams,
 )
 from pipecat.processors.frameworks.rtvi import RTVIClientMessage
@@ -24,17 +26,9 @@ from pipecat.runner.types import RunnerArguments
 from pipecat.runner.utils import create_transport
 from pipecat.services.anthropic.llm import AnthropicLLMService
 from streaming_flux_stt import StreamingFluxSTTService
-from pipecat.services.cartesia.tts import CartesiaTTSService
+from pipecat.services.elevenlabs.tts import ElevenLabsHttpTTSService
 from pipecat.transports.base_transport import BaseTransport, TransportParams
-
-# DailyParams is only available in Pipecat Cloud (requires daily module)
-try:
-    from pipecat.transports.daily.transport import DailyParams
-
-    _DAILY_AVAILABLE = True
-except Exception:
-    _DAILY_AVAILABLE = False
-    DailyParams = None  # type: ignore
+from pipecat.transports.daily.transport import DailyParams
 
 from frames import (
     PTTUserStartedSpeakingFrame,
@@ -44,6 +38,7 @@ from frames import (
 )
 from turn_strategies import PTTAwareUserTurnStrategies
 from dynamic_krisp_filter import DynamicKrispVivaFilter
+from assistant_aggregator import PassthroughAssistantAggregator
 
 # Load .env from parent directory (where it currently exists)
 load_dotenv(dotenv_path="../.env", override=True)
@@ -54,19 +49,18 @@ transport_params = {
         audio_out_enabled=True,
         audio_in_filter=DynamicKrispVivaFilter(),
     ),
-}
-
-# Add Daily transport if available (Pipecat Cloud)
-if _DAILY_AVAILABLE:
-    transport_params["daily"] = lambda: DailyParams(
+    "daily": lambda: DailyParams(
         audio_in_enabled=True,
         audio_out_enabled=True,
         audio_in_filter=DynamicKrispVivaFilter(),
-    )
+    ),
+}
 
 
 async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     logger.info("Starting bot")
+
+    http_session: aiohttp.ClientSession = aiohttp.ClientSession()
 
     stt = StreamingFluxSTTService(
         api_key=os.getenv("DEEPGRAM_API_KEY"),
@@ -77,9 +71,11 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         model="claude-haiku-4-5",
     )
 
-    tts = CartesiaTTSService(
-        api_key=os.getenv("CARTESIA_API_KEY"),
-        voice_id="79a125e8-cd45-4c13-8a67-188112f4dd22",  # British Lady
+    tts = ElevenLabsHttpTTSService(
+        api_key=os.getenv("ELEVENLABS_API_KEY"),
+        aiohttp_session=http_session,
+        model="eleven_flash_v2_5",
+        voice_id="JBFqnCBsd6RMkjVDRZzb",
     )
 
     system_message = {
@@ -92,13 +88,17 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
     context = LLMContext([system_message])
 
-    # Create PTT-aware turn strategies
+    # Custom turn strategy for switchable PTT and live modes
     turn_strategies = PTTAwareUserTurnStrategies()
 
-    user_aggregator, assistant_aggregator = LLMContextAggregatorPair(
+    user_aggregator = LLMUserAggregator(
         context,
-        user_params=LLMUserAggregatorParams(user_turn_strategies=turn_strategies),
+        params=LLMUserAggregatorParams(user_turn_strategies=turn_strategies),
     )
+
+    # Aggregator subclass that adds to the context token-by-token. (Didn't we have
+    # one of these in the core library before?)
+    assistant_aggregator = PassthroughAssistantAggregator(context)
 
     pipeline = Pipeline(
         [
@@ -106,9 +106,9 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
             stt,
             user_aggregator,
             llm,
+            assistant_aggregator,
             tts,
             transport.output(),
-            assistant_aggregator,
         ]
     )
 
@@ -158,6 +158,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
                 return
 
             if speaking:
+                await processor.interrupt_bot()
                 logger.debug("PTT: User started speaking")
                 await task.queue_frame(PTTUserStartedSpeakingFrame())
             else:
@@ -189,7 +190,11 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         await task.cancel()
 
     runner = PipelineRunner(handle_sigint=runner_args.handle_sigint)
-    await runner.run(task)
+    try:
+        await runner.run(task)
+    finally:
+        if http_session is not None:
+            await http_session.close()
 
 
 async def bot(runner_args: RunnerArguments):
