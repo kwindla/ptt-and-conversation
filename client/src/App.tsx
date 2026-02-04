@@ -22,6 +22,8 @@ interface VoiceChatContentProps {
   handleDisconnect?: () => void;
 }
 
+const DEFAULT_START_ENDPOINT = "/api/start-session";
+
 function VoiceChatContent({
   handleConnect,
   handleDisconnect,
@@ -128,12 +130,62 @@ function VoiceChatContent({
 }
 
 function App() {
+  const localWebrtcUrl = (import.meta.env.VITE_LOCAL_WEBRTC_URL || "").trim();
+  const useLocalWebrtc = Boolean(localWebrtcUrl);
+  const startEndpoint =
+    import.meta.env.VITE_PIPECAT_START_ENDPOINT || DEFAULT_START_ENDPOINT;
+
+  if (!useLocalWebrtc && !startEndpoint) {
+    return (
+      <div className="voice-chat-container">
+        <p>
+          Missing config. Set{" "}
+          <code>VITE_LOCAL_WEBRTC_URL</code> for local SmallWebRTC, or set{" "}
+          <code>VITE_PIPECAT_START_ENDPOINT</code> to your server route for
+          Pipecat Cloud.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <PipecatAppBase
-      transportType="smallwebrtc"
-      connectParams={{
-        connection_url: "http://localhost:7860/api/offer",
-      }}
+      transportType={useLocalWebrtc ? "smallwebrtc" : "daily"}
+      connectParams={
+        useLocalWebrtc ? { connectionUrl: localWebrtcUrl } : undefined
+      }
+      startBotParams={
+        useLocalWebrtc
+          ? undefined
+          : {
+              endpoint: startEndpoint,
+              requestData: {
+                transport: "daily",
+                createDailyRoom: true,
+                enableDefaultIceServers: true,
+              },
+            }
+      }
+      startBotResponseTransformer={
+        useLocalWebrtc
+          ? undefined
+          : (response) => {
+              if (!response || typeof response !== "object") {
+                throw new Error("Invalid start session response");
+              }
+              const data = response as {
+                dailyRoom?: string;
+                dailyToken?: string;
+              };
+              if (!data.dailyRoom) {
+                throw new Error("Missing Daily room info in start session response");
+              }
+              return {
+                url: data.dailyRoom,
+                token: data.dailyToken,
+              };
+            }
+      }
       clientOptions={{
         enableMic: false,  // Start with mic off (PTT mode)
         enableCam: false,

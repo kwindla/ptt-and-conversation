@@ -1,12 +1,10 @@
-FROM dailyco/pipecat-base:0.1.8
+FROM dailyco/pipecat-base:latest
 
 WORKDIR /app
 
 # Copy requirements and install dependencies
-COPY requirements.txt .
+COPY server/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY *.py .
-
-CMD ["python", "bot.py"]
+COPY server/*.py .

@@ -1,7 +1,11 @@
 # Pipecat Cloud deployment configuration
 agent_name = "khk-ptt-voice-bot"
-image = "pluot/khk-ptt-voice-bot:0.2"
+image = "pluot/khk-ptt-voice-bot:0.10"
 secret_set = "ptt-voice-bot-secrets"
 
 [scaling]
 min_agents = 0
+max_agents = 5
+
+[krisp_viva]
+audio_filter = "tel"

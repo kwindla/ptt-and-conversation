@@ -1,7 +1,8 @@
 # Pipecat with required service integrations
-# Note: daily transport is included in pipecat-base image, but we need to include
-# the daily extra here to ensure the transport is available after pip install
-pipecat-ai[anthropic,deepgram,cartesia,daily,runner]
+# runner: for the pipecat runner (includes small-webrtc-prebuilt)
+# webrtc: for aiortc (required by SmallWebRTC local transport)
+# daily: for Pipecat Cloud Daily transport
+pipecat-ai[anthropic,deepgram,cartesia,daily,runner,webrtc]
 
 # Environment variable loading
 python-dotenv
