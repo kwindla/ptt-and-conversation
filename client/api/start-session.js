@@ -1,4 +1,4 @@
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.statusCode = 405;
     res.setHeader("Allow", "POST");
@@ -61,4 +61,4 @@ module.exports = async (req, res) => {
     res.statusCode = 502;
     res.end("Failed to start Pipecat session");
   }
-};
+}
