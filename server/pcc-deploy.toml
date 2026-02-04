@@ -1,0 +1,11 @@
+# Pipecat Cloud deployment configuration
+agent_name = "ptt-voice-bot"
+
+# Krisp VIVA noise reduction
+# tel = up to 16kHz (default), pro = up to 32kHz
+[krisp_viva]
+audio_filter = "tel"
+
+# Scaling configuration
+[scaling]
+min_agents = 0

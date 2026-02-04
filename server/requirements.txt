@@ -1,0 +1,6 @@
+# Pipecat with required service integrations
+# Note: daily transport is included in pipecat-base image
+pipecat-ai[anthropic,deepgram,cartesia]
+
+# Environment variable loading
+python-dotenv
