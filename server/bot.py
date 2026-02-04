@@ -29,7 +29,7 @@ from pipecat.transports.base_transport import BaseTransport, TransportParams
 
 # DailyParams is only available in Pipecat Cloud (requires daily module)
 try:
-    from pipecat.transports.services.daily import DailyParams
+    from pipecat.transports.daily.transport import DailyParams
 
     _DAILY_AVAILABLE = True
 except Exception:
